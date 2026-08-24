@@ -1,0 +1,527 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#0C131C">
+<link rel="manifest" href="./manifest.webmanifest">
+<title>Nightstash</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,600&family=Newsreader:opsz,wght@6..72,300;6..72,400&family=IBM+Plex+Mono:wght@400;500&display=swap');
+:root{--ink:#0C131C;--slate:#151F2C;--edge:#243447;--lamp:#E8A33D;--paper:#EDE6D8;--muted:#7B8CA1;
+  --solid:#6FC08B;--frontier:#5FB8C4;--contested:#C9A227;--folklore:#B8687E;--revisit:#A78BC4}
+*{box-sizing:border-box;margin:0;padding:0}
+html,body{height:100%}
+body{background:var(--ink);color:var(--paper);font-family:'Newsreader',Georgia,serif;font-weight:300;
+  -webkit-font-smoothing:antialiased;display:flex;justify-content:center;padding:0 18px env(safe-area-inset-bottom)}
+#app{width:100%;max-width:460px;display:flex;flex-direction:column;min-height:100vh}
+.eyebrow{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.18em;text-transform:uppercase;color:var(--muted)}
+header{display:flex;align-items:baseline;justify-content:space-between;padding:26px 0 18px;gap:10px}
+.mark{font-family:'Fraunces',serif;font-weight:600;font-size:19px;letter-spacing:-.01em}
+.mark span{color:var(--lamp)}
+.hgroup{display:flex;align-items:baseline;gap:12px}
+.streak{font-family:'IBM Plex Mono',monospace;font-size:11px;color:var(--muted)}
+.streak b{color:var(--lamp);font-weight:500}
+.gear{background:none;border:0;color:var(--muted);font-family:'IBM Plex Mono',monospace;font-size:10px;
+  letter-spacing:.14em;text-transform:uppercase;cursor:pointer;padding:4px}
+.screen{display:none;flex:1;flex-direction:column}
+.screen.on{display:flex}
+.lede{font-family:'Fraunces',serif;font-size:27px;line-height:1.22;font-weight:400;margin:14px 0 8px}
+.sub{color:var(--muted);font-size:15px;line-height:1.5;margin-bottom:20px}
+.tracks{display:flex;flex-wrap:wrap;gap:7px;margin-bottom:8px}
+.track{font-family:'IBM Plex Mono',monospace;font-size:11.5px;padding:8px 12px;border:1px solid var(--edge);
+  border-radius:2px;background:transparent;color:var(--muted);cursor:pointer;transition:.14s;line-height:1;
+  display:flex;align-items:center;gap:7px}
+.track:hover{border-color:var(--muted)}
+.track[aria-pressed="true"]{background:var(--lamp);border-color:var(--lamp);color:var(--ink)}
+.track .pulse{width:4px;height:4px;border-radius:50%;background:var(--solid);flex-shrink:0}
+.track.resting{opacity:.42;border-style:dashed}
+.track.resting .pulse{background:var(--folklore)}
+.track[aria-pressed="true"] .pulse{background:var(--ink);opacity:.55}
+.track .lvl{font-size:9px;opacity:.7}
+.legend{font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--muted);letter-spacing:.04em;margin-bottom:16px;line-height:1.7}
+.gapnote{border-left:2px solid var(--frontier);padding-left:11px;margin-bottom:18px;font-size:13.5px;line-height:1.5;color:#CFC8BB}
+.gapnote .eyebrow{display:block;margin-bottom:4px;color:var(--frontier)}
+.toggle{display:flex;align-items:flex-start;gap:10px;margin-bottom:11px;cursor:pointer}
+.toggle input{accent-color:var(--lamp);width:16px;height:16px;margin-top:2px;flex-shrink:0}
+.toggle span{font-size:14px;color:var(--muted);line-height:1.45}
+.btn{font-family:'IBM Plex Mono',monospace;font-size:12px;letter-spacing:.1em;text-transform:uppercase;
+  width:100%;padding:15px;border:0;border-radius:2px;background:var(--lamp);color:var(--ink);cursor:pointer;transition:.14s}
+.btn:disabled{background:var(--slate);color:var(--muted);cursor:not-allowed}
+.btn.ghost{background:transparent;border:1px solid var(--edge);color:var(--muted)}
+.btn.small{font-size:10px;padding:11px 6px;letter-spacing:.05em}
+.foot{margin-top:auto;padding:20px 0;font-size:12.5px;color:var(--muted);line-height:1.55}
+.progress{display:flex;gap:4px;margin:4px 0 20px}
+.pip{height:2px;flex:1;background:var(--edge)}
+.pip.done{background:var(--lamp)}
+.pip.rev.done{background:var(--revisit)}
+.card{background:var(--slate);border:1px solid var(--edge);border-radius:3px;padding:26px 24px 22px;
+  display:flex;flex-direction:column;animation:rise .34s cubic-bezier(.2,.7,.3,1)}
+.card.revisit{border-color:var(--revisit)}
+.card.retake{border-color:var(--lamp)}
+@keyframes rise{from{opacity:0;transform:translateY(10px)}to{opacity:1;transform:none}}
+.card .topic{margin-bottom:16px;display:flex;justify-content:space-between;gap:10px}
+.idea{font-family:'Fraunces',serif;font-size:23px;line-height:1.34;font-weight:400;margin-bottom:16px}
+.body{font-size:16px;line-height:1.62;color:#CFC8BB}
+.meter{margin-top:22px;padding-top:16px;border-top:1px solid var(--edge)}
+.meter-head{display:flex;justify-content:space-between;align-items:center;margin-bottom:8px}
+.tier{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.16em;text-transform:uppercase}
+.bar{height:3px;background:#0C131C;overflow:hidden}
+.fill{height:100%;width:0;transition:width .5s cubic-bezier(.2,.7,.3,1)}
+.basis{font-size:13.5px;line-height:1.5;color:var(--muted);margin-top:10px}
+.watch{display:inline-flex;align-items:center;gap:8px;margin-top:18px;font-family:'IBM Plex Mono',monospace;
+  font-size:10.5px;letter-spacing:.1em;text-transform:uppercase;color:var(--lamp);text-decoration:none;
+  border:1px solid var(--edge);padding:10px 12px;border-radius:2px}
+.watch:hover{border-color:var(--lamp)}
+.watch b{font-weight:400;text-transform:none;letter-spacing:0;font-family:'Newsreader',serif;font-size:14px;color:#CFC8BB}
+.work,.linkbox{margin-top:22px;padding-top:18px;border-top:1px dashed var(--edge)}
+.work h4,.linkbox h4{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.16em;
+  text-transform:uppercase;font-weight:500;margin-bottom:8px;color:var(--frontier)}
+.linkbox h4{color:var(--lamp)}
+.work p,.linkbox p{font-size:15px;line-height:1.55;margin-bottom:16px;color:#CFC8BB}
+.linkbox p:last-child{margin-bottom:0}
+.linkto{font-style:italic;color:var(--paper)}
+.strength{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase}
+details.work summary{cursor:pointer;list-style:none;font-family:'IBM Plex Mono',monospace;font-size:10px;
+  letter-spacing:.16em;text-transform:uppercase;color:var(--frontier);padding:2px 0}
+details.work summary::-webkit-details-marker{display:none}
+details.work summary::after{content:' +'}
+details.work[open] summary::after{content:' –'}
+details.work[open] summary{margin-bottom:14px}
+.handles{list-style:none;counter-reset:h}
+.handles li{counter-increment:h;position:relative;padding-left:26px;font-size:14.5px;line-height:1.5;margin-bottom:11px;color:#CFC8BB}
+.handles li::before{content:counter(h);position:absolute;left:0;top:1px;font-family:'IBM Plex Mono',monospace;font-size:10px;color:var(--frontier)}
+textarea,input[type=text],input[type=password]{width:100%;background:var(--ink);border:1px solid var(--edge);color:var(--paper);
+  font-family:'Newsreader',serif;font-size:14.5px;line-height:1.5;padding:11px;border-radius:2px}
+textarea{resize:vertical;min-height:74px}
+.dispute{margin-top:14px}
+.flagged{border-left:2px solid var(--lamp);padding-left:11px;margin-top:12px;font-size:14px;line-height:1.5;color:#CFC8BB}
+.flagged .eyebrow{display:block;margin-bottom:4px;color:var(--lamp)}
+.verdict,.prereq{margin-top:20px;padding-top:18px;border-top:1px dashed var(--revisit)}
+.prereq{border-top-color:var(--frontier)}
+.verdict h4,.prereq h4{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.16em;
+  text-transform:uppercase;color:var(--revisit);font-weight:500;margin-bottom:8px}
+.prereq h4{color:var(--frontier)}
+.verdict p,.prereq p{font-size:15px;line-height:1.58;margin-bottom:14px;color:#CFC8BB}
+.retake-note{font-family:'IBM Plex Mono',monospace;font-size:10px;letter-spacing:.14em;text-transform:uppercase;
+  color:var(--lamp);margin-bottom:14px}
+.rowbtns{display:flex;gap:6px;margin-top:16px;padding-bottom:24px;flex-wrap:wrap}
+.rowbtns .btn{flex:1;min-width:80px}
+.done-h{font-family:'Fraunces',serif;font-size:30px;line-height:1.2;margin:30px 0 10px}
+.saved-item{border-bottom:1px solid var(--edge);padding:16px 0}
+.saved-item .idea{font-size:17px;margin-bottom:6px}
+.list{flex:1;overflow-y:auto;margin-bottom:16px}
+.field{margin-bottom:18px}
+.field label{display:block;margin-bottom:7px}
+.field .hint{font-size:13px;color:var(--muted);line-height:1.5;margin-top:7px}
+.err{border:1px solid var(--folklore);padding:14px;border-radius:2px;font-size:14px;line-height:1.5;margin-bottom:14px}
+.loading{font-family:'IBM Plex Mono',monospace;font-size:12px;color:var(--muted);letter-spacing:.06em;padding:40px 0;text-align:center}
+.dots::after{content:'';animation:dots 1.4s steps(4,end) infinite}
+@keyframes dots{0%{content:''}25%{content:'.'}50%{content:'..'}75%{content:'...'}}
+@media (prefers-reduced-motion:reduce){*{animation:none!important;transition:none!important}}
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <div class="hgroup"><div class="mark">Night<span>stash</span></div></div>
+    <div class="hgroup"><div class="streak" id="streak"></div><button class="gear" id="gear">Setup</button></div>
+  </header>
+
+  <section class="screen on" id="s-setup">
+    <div class="eyebrow">Tonight's session</div>
+    <h1 class="lede">Five new, one revisit.</h1>
+    <p class="sub">Each track has a depth. Say "over my head" and it drops a rung and names what you'd need first.</p>
+    <div id="gapbox"></div>
+    <div class="tracks" id="tracks"></div>
+    <p class="legend" id="legend"></p>
+    <label class="toggle"><input type="checkbox" id="fronly">
+      <span>Frontier only. Every new card is an open problem with handles.</span></label>
+    <label class="toggle"><input type="checkbox" id="linkon">
+      <span>Look for ties to the bench. Links must name a shared mechanism or they're marked none.</span></label>
+    <label class="toggle"><input type="checkbox" id="adapton">
+      <span>Adapt to engagement. Off means every track stays in the deck at a fixed depth.</span></label>
+    <button class="btn" id="deal" style="margin-top:8px">Deal tonight's session</button>
+    <p class="foot" id="poolnote"></p>
+  </section>
+
+  <section class="screen" id="s-cards">
+    <div class="progress" id="pips"></div>
+    <div id="stage"></div>
+  </section>
+
+  <section class="screen" id="s-done">
+    <div class="eyebrow">Session closed</div>
+    <h2 class="done-h">Done for tonight.</h2>
+    <p class="sub" id="done-sub"></p>
+    <button class="btn ghost" id="view-saved" style="margin-bottom:8px">Open the bench</button>
+    <p class="foot">Open threads come back on rotation, oldest-touched first.</p>
+  </section>
+
+  <section class="screen" id="s-saved">
+    <div class="eyebrow">The bench</div>
+    <h2 class="done-h" style="font-size:24px;margin-bottom:18px">Open threads</h2>
+    <div class="list" id="saved-list"></div>
+    <button class="btn ghost" id="back">Back</button>
+    <div style="height:24px"></div>
+  </section>
+
+  <section class="screen" id="s-config">
+    <div class="eyebrow">Setup</div>
+    <h2 class="done-h" style="font-size:24px">Where the cards come from</h2>
+    <p class="sub">Running inside a Claude artifact, leave both blank. Running as your own app, point it at a proxy.</p>
+    <div class="field">
+      <label class="eyebrow" for="ep">Proxy URL</label>
+      <input type="text" id="ep" placeholder="https://nightstash.you.workers.dev" autocomplete="off">
+      <p class="hint">A Cloudflare Worker holding your API key. Recommended.</p>
+    </div>
+    <div class="field">
+      <label class="eyebrow" for="ak">Or an API key, direct</label>
+      <input type="password" id="ak" placeholder="sk-ant-..." autocomplete="off">
+      <p class="hint">Stored on this device only. Anyone who can open this page or read its storage can take it. Use the proxy unless you're the only one who ever touches the phone.</p>
+    </div>
+    <button class="btn" id="save-cfg">Save and go back</button>
+    <div style="height:24px"></div>
+  </section>
+</div>
+
+<script>
+const TRACKS=["Neural nets & efficiency","Linear algebra","AI training & learning theory","Robotics & control",
+"Psychiatry","Psychology","Biology & neuroscience","Quantum biology","Cymatics & acoustics","Plasma physics",
+"Biomagnetism","Toroidal fields & geometry","Space & time","Cosmology","Ancient technique & lost craft","Sleep & circadian rhythm"];
+const TIERS={established:{c:"var(--solid)",w:"100%",label:"Established"},
+ frontier:{c:"var(--frontier)",w:"66%",label:"Active frontier"},
+ contested:{c:"var(--contested)",w:"38%",label:"Contested"},
+ folklore:{c:"var(--folklore)",w:"14%",label:"Folklore / not supported"}};
+const LINKCOLOR={mechanistic:"var(--solid)",formal:"var(--frontier)",analogical:"var(--contested)",none:"var(--muted)"};
+const LEVELS={1:"plain language, everyday images, no notation",
+ 2:"one technical term per card, defined in the same breath, arithmetic only",
+ 3:"standard terminology assumed, light notation, named methods and results",
+ 4:"full technical register, equations, cite specific papers and quantities"};
+const REST_AT=-4, HOT_AT=3, SKIM_MS=9000;
+
+let picked=new Set(["Neural nets & efficiency","Linear algebra","Space & time"]);
+let frontierOnly=false, linkMode=true, adapt=true, endpoint='', apikey='';
+let cards=[], idx=0, threads=[], weights={}, levels={}, gaps=[], streak=0, lastNight=null;
+let cardStart=0, touched=false, retakeDone=false;
+
+const $=id=>document.getElementById(id);
+const show=id=>document.querySelectorAll('.screen').forEach(s=>s.classList.toggle('on',s.id===id));
+const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const today=()=>new Date().toISOString().slice(0,10);
+const openThreads=()=>threads.filter(t=>t.status==='open');
+const w=t=>weights[t]||0;
+const lvl=t=>levels[t]||2;
+const resting=t=>adapt&&w(t)<=REST_AT;
+
+const store={
+  async get(k){ if(window.storage) return JSON.parse((await window.storage.get(k)).value);
+                const v=localStorage.getItem(k); if(v==null) throw new Error('miss'); return JSON.parse(v); },
+  async set(k,v){ if(window.storage) return window.storage.set(k,JSON.stringify(v));
+                  localStorage.setItem(k,JSON.stringify(v)); }
+};
+
+async function load(){
+  try{const s=await store.get('nightstash:v4');
+    threads=s.threads||[];weights=s.weights||{};levels=s.levels||{};gaps=s.gaps||[];
+    streak=s.streak||0;lastNight=s.lastNight||null;
+    frontierOnly=!!s.frontierOnly;linkMode=s.linkMode!==false;adapt=s.adapt!==false;
+    endpoint=s.endpoint||'';apikey=s.apikey||'';
+    if(s.picked?.length)picked=new Set(s.picked);}catch(e){}
+  $('fronly').checked=frontierOnly;$('linkon').checked=linkMode;$('adapton').checked=adapt;
+  $('ep').value=endpoint;$('ak').value=apikey;
+  paintStreak();paintTracks();paintPool();paintGaps();
+}
+async function persist(){
+  try{await store.set('nightstash:v4',{threads,weights,levels,gaps,streak,lastNight,
+    frontierOnly,linkMode,adapt,endpoint,apikey,picked:[...picked]});}
+  catch(e){console.error('Could not save',e);}
+}
+function bump(t,n){if(t)weights[t]=(weights[t]||0)+n;}
+function setLvl(t,n){if(t)levels[t]=Math.max(1,Math.min(4,(levels[t]||2)+n));}
+function paintStreak(){$('streak').innerHTML=streak?`<b>${streak}</b> night${streak>1?'s':''}`:'first night';}
+function paintPool(){const n=openThreads().length;
+  $('poolnote').textContent=n?`${n} open thread${n===1?'':'s'} in rotation. One comes back tonight.`
+    :`No open threads yet. Dispute a rating or flag a card to start one.`;}
+function paintGaps(){
+  $('gapbox').innerHTML=gaps.length
+    ?`<div class="gapnote"><span class="eyebrow">Queued as groundwork</span>${gaps.slice(0,4).map(g=>esc(g.concept)).join(' &middot; ')}</div>`:'';
+}
+function paintTracks(){
+  $('tracks').innerHTML=TRACKS.map(t=>{
+    const hot=w(t)>=HOT_AT,rest=resting(t);
+    return `<button class="track ${rest?'resting':''}" aria-pressed="${picked.has(t)&&!rest}" data-t="${esc(t)}"
+      title="engagement ${w(t)>0?'+':''}${w(t)}, depth ${lvl(t)}">${hot||rest?'<i class="pulse"></i>':''}${esc(t)}<i class="lvl">L${lvl(t)}</i></button>`;}).join('');
+  const rc=TRACKS.filter(resting).length,hc=TRACKS.filter(t=>w(t)>=HOT_AT).length;
+  $('legend').innerHTML=adapt?`${hc} running hot &nbsp;/&nbsp; ${rc} resting${rc?', tap to wake':''} &nbsp;/&nbsp; L1 plainest, L4 technical`
+    :`Adaptation off. All tracks stay in the deck.`;
+  $('deal').disabled=[...picked].filter(t=>!resting(t)).length===0;
+}
+$('tracks').onclick=e=>{const b=e.target.closest('.track');if(!b)return;const t=b.dataset.t;
+  if(resting(t)){weights[t]=0;picked.add(t);}else picked.has(t)?picked.delete(t):picked.add(t);
+  paintTracks();persist();};
+$('fronly').onchange=e=>frontierOnly=e.target.checked;
+$('linkon').onchange=e=>linkMode=e.target.checked;
+$('adapton').onchange=e=>{adapt=e.target.checked;paintTracks();persist();};
+$('gear').onclick=()=>show('s-config');
+$('save-cfg').onclick=async()=>{endpoint=$('ep').value.trim();apikey=$('ak').value.trim();
+  await persist();show('s-setup');};
+
+$('deal').onclick=async()=>{
+  show('s-cards');$('stage').innerHTML=`<div class="loading dots">Dealing</div>`;$('pips').innerHTML='';
+  try{
+    cards=await generate([...picked].filter(t=>!resting(t)));
+    const pool=openThreads();
+    if(pool.length){
+      const sorted=[...pool].sort((a,b)=>(a.touched||'')<(b.touched||'')?-1:1);
+      const pick=sorted[Math.floor(Math.random()*Math.min(3,sorted.length))];
+      cards.push({...pick.card,_revisit:true,_threadId:pick.id});
+    }
+    idx=0;renderCard();
+  }catch(err){
+    $('stage').innerHTML=`<div class="err">Couldn't reach the idea generator. ${esc(err.message||'')}</div>
+      <button class="btn ghost" onclick="document.getElementById('gear').click()">Check setup</button>`;
+  }
+};
+
+async function callClaude(system,user,max){
+  const url=endpoint?endpoint.replace(/\/$/,''):"https://api.anthropic.com/v1/messages";
+  const headers={"Content-Type":"application/json"};
+  if(!endpoint&&apikey){headers["x-api-key"]=apikey;headers["anthropic-version"]="2023-06-01";
+    headers["anthropic-dangerous-direct-browser-access"]="true";}
+  const res=await fetch(url,{method:"POST",headers,
+    body:JSON.stringify({model:"claude-sonnet-4-6",max_tokens:max||2000,system,messages:[{role:"user",content:user}]})});
+  const data=await res.json();
+  if(data.error) throw new Error(data.error.message||'API error');
+  return data.content.filter(b=>b.type==="text").map(b=>b.text).join("");
+}
+const parse=t=>JSON.parse(t.replace(/```json|```/g,"").trim());
+
+const ACCURACY=`Accuracy rules. These override interestingness and override making anything easier to read:
+- Rate honestly. Split popular claims from their real underlying science instead of dismissing a whole topic.
+- BIOMAGNETISM: the heart's electrical activity produces a real magnetic field measured clinically by magnetocardiography, roughly 10 to 100 picotesla at the chest, via SQUID magnetometers since the 1960s. ESTABLISHED. Any dipole has toroidal field-line topology, true of a bar magnet too, so it is not special to hearts. NOT established: that it encodes emotion, carries information between people, or is detectable at conversational distance. Dipole fields fall off as 1/r cubed and the heart's field is about a millionth of Earth's ambient field.
+- QUANTUM BIOLOGY is a genuine frontier, stated precisely. Radical pair magnetoreception in cryptochrome is the strongest case, spin coherence lasting microseconds. Most biological degrees of freedom decohere in femtoseconds to picoseconds at body temperature. Entanglement cannot transmit information, by the no-communication theorem. "Observation" means decoherence via interaction, not consciousness. Never let "everything is interconnected" stand in for a mechanism.
+- NEURAL NETS: be concrete and correct about what actually buys efficiency. Quantization, KV cache management, sparsity and mixture of experts, distillation, low rank adaptation, speculative decoding, flash attention and memory-bandwidth limits, batching. Say which bottleneck each one attacks, memory bandwidth versus compute versus parameter count, since they are not the same problem. Do not imply a technique is free of tradeoffs.
+- LINEAR ALGEBRA: ground it in what it does inside the machine. A matmul is what a layer is, eigenvectors and singular values are what low rank methods exploit, dot products are what attention scores are.
+- Cymatics: Chladni and Faraday wave physics established; cymatic healing is folklore.
+- Toroidal geometry: tokamak confinement and magnetospheres established; confinement instability is a live frontier.
+- "Ancient technique": documented craft like Roman seawater concrete, Polynesian wayfinding, the Antikythera mechanism. Not lost-civilization claims.
+- Never present folklore as established, and never flatten something established into folklore because it sits near a popular myth.
+- No medical or psychiatric advice. Mechanism and research only.`;
+
+const WATCH=`- "watch": a YouTube SEARCH PHRASE, not a URL and not a video title you are guessing at. 4 to 8 words that would surface a good explainer, naming the channel when an obvious one exists, for example "3blue1brown singular value decomposition" or "Veritasium tokamak plasma confinement". Never invent video IDs or links.`;
+
+async function generate(topics){
+  const hot=TRACKS.filter(t=>w(t)>=HOT_AT), cold=TRACKS.filter(t=>w(t)<0&&!resting(t));
+  const bench=openThreads().slice(0,8).map(t=>`- ${t.card.idea} (${t.card.topic})`).join('\n');
+  const depth=topics.map(t=>`${t}: level ${lvl(t)}, ${LEVELS[lvl(t)]}`).join('\n');
+  const gapAsk=gaps.slice(0,2).map(g=>`- ${g.concept} (needed for: ${g.forCard})`).join('\n');
+  const sys=`You write single-idea learning cards for someone who wants to work on open problems, not read trivia. Return ONLY a JSON array of 5 objects. No markdown fences, no preamble.
+
+Each: {"topic","idea","body","tier","basis","watch","open_question","stuck_on","handles":[3 strings],"link"}
+- "topic": MUST be exactly one of the requested topic strings, copied verbatim.
+- "idea": one claim, under 15 words. "body": 40-60 words, concrete.
+- "tier": one of "established","frontier","contested","folklore".
+- "basis": under 25 words on the actual evidence, naming the measurement or method where one exists.
+${WATCH}
+- open_question / stuck_on / handles: REQUIRED for tier "frontier", omit otherwise.
+  open_question: the unresolved question, sharp enough to work on.
+  stuck_on: the specific blocker. A missing measurement, an incompatible formalism, an unreachable scale, an unfixable free parameter.
+  handles: 3 concrete angles an outsider could push on. Name what would have to be true, what needs measuring, or which assumption is load-bearing. No vague "study further".
+${linkMode&&bench?`- "link": {"to","mechanism","strength":"mechanistic"|"formal"|"analogical"|"none"} tying this card to ONE bench item below, or omit.
+  LINK HONESTY IS MANDATORY. "mechanistic" only if the same physical process drives both. "formal" only if the same equations genuinely apply, and name them. "analogical" if it is only resemblance, and say so in "mechanism". "none" if there is no real tie. Most unrelated pairs have NO link. Returning most cards with no link is correct.
+
+BENCH:
+${bench}`:'- "link": omit this field entirely.'}
+
+WRITE EACH CARD AT ITS TRACK'S DEPTH:
+${depth}
+${gapAsk?`\nGROUNDWORK. The reader flagged these as missing prerequisites. Make one of the five a card teaching one of them directly, at level 1 or 2, tier established:\n${gapAsk}`:''}
+${hot.length?`\nEngages most with: ${hot.join(', ')}. Weight toward these.`:''}
+${cold.length?`\nHas been skimming: ${cold.join(', ')}. Find a different angle, not a softer rating.`:''}
+
+${ACCURACY}`;
+  const ask=frontierOnly
+    ?`Topics: ${topics.join(', ')}. Five cards, ALL tier "frontier", each a real open problem with handles.`
+    :`Topics: ${topics.join(', ')}. Tonight's five. At least two must be tier "frontier". Vary the rest.`;
+  return parse(await callClaude(sys,ask,3000));
+}
+
+async function reframe(card,explicit){
+  const target=Math.max(1,lvl(card.topic)-(explicit?1:0));
+  const sys=`Rewrite one learning card that did not land. ${explicit?'The reader said outright it was over their head.':'The reader skimmed it, so it was too abstract or the stakes were invisible.'} Return ONLY JSON, no fences:
+{"idea","body","hook","watch","prereq":{"concept","why"}}
+- "hook": one sentence, an everyday concrete situation where this shows up.
+- "idea": the same claim restated plainly, under 15 words.
+- "body": 40-60 words at this level: ${LEVELS[target]}
+${WATCH}
+- "prereq": the ONE concept the reader most likely needed first for the original to make sense. "concept" is a short name, "why" is one sentence on what it unlocks. If the original needed no prerequisite and was just badly written, set prereq to null.
+
+HARD CONSTRAINT: the claim, its confidence rating, and its evidential basis do not change. You are making it easier to grasp, never easier to believe. Do not add certainty, do not drop caveats, do not upgrade a speculative claim. If the original was folklore or contested, the plainer version must be just as clearly folklore or contested.`;
+  return parse(await callClaude(sys,
+    `Topic: ${card.topic}\nClaim: ${card.idea}\nRating: ${card.tier}\nBasis: ${card.basis}\nOriginal: ${card.body}`,1000));
+}
+
+async function adjudicate(card,note){
+  const sys=`You are refereeing a disagreement about how a scientific claim was rated. Return ONLY JSON, no fences:
+{"concede","hold","settles_it","revised_tier"}
+- "concede": what is genuinely right in the objection, specifically. If nothing is, say so.
+- "hold": what still does not follow, with the number, scale, or theorem that does the work.
+- "settles_it": the observation, measurement, or calculation that would decide it either way.
+- "revised_tier": one of established/frontier/contested/folklore after weighing the objection. Change it only if warranted.
+Be direct. Do not flatter and do not cave to persistence. Getting this right matters more than agreement.
+
+${ACCURACY}`;
+  return parse(await callClaude(sys,
+    `Claim: "${card.idea}"\nRated: ${card.tier}\nStated basis: ${card.basis}\n\nObjection:\n${note}`,1200));
+}
+
+function renderCard(){
+  const c=cards[idx],t=TIERS[c.tier]||TIERS.contested;
+  const existing=threads.find(x=>x.card.idea===c.idea);
+  const isRev=!!c._revisit,isRetake=!!c._retake;
+  cardStart=Date.now();
+  if(!isRetake){touched=false;retakeDone=false;}
+  $('pips').innerHTML=cards.map((_,i)=>`<div class="pip ${cards[i]._revisit?'rev':''} ${i<=idx?'done':''}"></div>`).join('');
+  const lk=c.link&&c.link.strength;
+  const yt=c.watch?`https://www.youtube.com/results?search_query=${encodeURIComponent(c.watch)}`:'';
+  $('stage').innerHTML=`
+    <article class="card ${isRev?'revisit':''} ${isRetake?'retake':''}">
+      ${isRetake?`<div class="retake-note">Second pass, level ${lvl(c.topic)}</div>`:''}
+      <div class="topic"><span class="eyebrow" ${isRev?'style="color:var(--revisit)"':''}>${isRev?'Revisit / ':''}${esc(c.topic)}</span><span class="eyebrow">L${lvl(c.topic)}</span></div>
+      ${c.hook?`<p class="body" style="font-style:italic;margin-bottom:14px">${esc(c.hook)}</p>`:''}
+      <h2 class="idea">${esc(c.idea)}</h2>
+      <p class="body">${esc(c.body)}</p>
+      <div class="meter">
+        <div class="meter-head"><span class="tier" style="color:${t.c}">${t.label}</span><span class="eyebrow">Confidence</span></div>
+        <div class="bar"><div class="fill" id="fill" style="background:${t.c}"></div></div>
+        <p class="basis">${esc(c.basis)}</p>
+        ${existing&&existing.note?`<div class="flagged"><span class="eyebrow">Your objection</span>${esc(existing.note)}</div>`:''}
+      </div>
+      ${yt?`<a class="watch" id="ytl" href="${esc(yt)}" target="_blank" rel="noopener">Watch &nbsp;<b>${esc(c.watch)}</b></a>`:''}
+      ${lk?`<div class="linkbox"><h4>Tie to the bench</h4><p><span class="linkto">${esc(c.link.to)}</span></p>
+        <p><span class="strength" style="color:${LINKCOLOR[c.link.strength]||'var(--muted)'}">${esc(c.link.strength)}</span></p>
+        <p>${esc(c.link.mechanism)}</p></div>`:''}
+      ${c.tier==='frontier'&&c.open_question?`<details class="work" id="det"><summary>Open the problem</summary>
+        <h4>The open question</h4><p>${esc(c.open_question)}</p>
+        <h4>Where it stalls</h4><p>${esc(c.stuck_on)}</p>
+        <h4>Handles</h4><ul class="handles">${(c.handles||[]).map(h=>`<li>${esc(h)}</li>`).join('')}</ul></details>`:''}
+      <div id="verdict"></div>
+      <div class="dispute" id="disp" hidden>
+        <textarea id="note" placeholder="What's wrong with this rating, and what's your evidence?">${existing?esc(existing.note):''}</textarea>
+        <button class="btn small ghost" id="save-note" style="margin-top:8px">Record and referee</button>
+      </div>
+    </article>
+    <div class="rowbtns">
+      <button class="btn small ghost" id="overhead">Over my head</button>
+      ${isRev?`<button class="btn small ghost" id="resolve">Settled</button>
+               <button class="btn small ghost" id="challenge">Add objection</button>`
+             :`<button class="btn small ghost" id="challenge">Dispute</button>
+               <button class="btn small ${existing?'ghost':''}" id="benchit">${existing?'Benched':'Work on this'}</button>`}
+      <button class="btn small" id="nxt">${idx===cards.length-1?'Finish':'Next'}</button>
+    </div>`;
+  requestAnimationFrame(()=>{const f=$('fill');if(f)f.style.width=t.w;});
+  if(isRev&&existing&&existing.verdict)paintVerdict(existing.verdict);
+  if($('det'))$('det').addEventListener('toggle',()=>{if($('det').open){touched=true;bump(c.topic,1);}});
+  if($('ytl'))$('ytl').onclick=()=>{touched=true;bump(c.topic,2);};
+
+  $('overhead').onclick=async()=>{
+    touched=true;setLvl(c.topic,-1);
+    $('stage').innerHTML=`<div class="loading dots">Dropping a level</div>`;
+    try{
+      const r=await reframe(c,true);
+      if(r.prereq&&r.prereq.concept&&!gaps.some(g=>g.concept===r.prereq.concept))
+        gaps.unshift({concept:r.prereq.concept,why:r.prereq.why,forCard:c.idea,date:today()});
+      cards[idx]={...c,idea:r.idea,body:r.body,hook:r.hook,watch:r.watch||c.watch,_retake:true,_prereq:r.prereq};
+      await persist();renderCard();
+      if(r.prereq&&r.prereq.concept)
+        $('verdict').innerHTML=`<div class="prereq"><h4>What you'd want first</h4>
+          <p><span class="linkto">${esc(r.prereq.concept)}</span>. ${esc(r.prereq.why)}</p>
+          <p class="strength" style="color:var(--frontier)">Queued for a future night</p></div>`;
+    }catch(e){$('stage').innerHTML=`<div class="err">Couldn't reframe that one.</div>
+      <button class="btn" onclick="next()">Next card</button>`;}
+  };
+  $('challenge').onclick=()=>{touched=true;const d=$('disp');d.hidden=!d.hidden;if(!d.hidden)$('note').focus();};
+  $('save-note').onclick=async()=>{
+    const note=$('note').value.trim();if(!note)return;
+    touched=true;bump(c.topic,3);
+    $('verdict').innerHTML=`<div class="loading dots" style="padding:20px 0">Refereeing</div>`;$('disp').hidden=true;
+    let v=null;
+    try{v=await adjudicate(c,note);}catch(e){$('verdict').innerHTML=`<div class="err">Referee unavailable. Objection saved anyway.</div>`;}
+    upsertThread(c,note,v);if(v)paintVerdict(v);await persist();
+  };
+  if($('benchit'))$('benchit').onclick=async()=>{touched=true;bump(c.topic,3);setLvl(c.topic,1);upsertThread(c,'',null);await persist();renderCard();};
+  if($('resolve'))$('resolve').onclick=async()=>{touched=true;
+    const th=threads.find(x=>x.id===c._threadId);if(th){th.status='settled';th.touched=today();}
+    await persist();next();};
+  $('nxt').onclick=onNext;
+}
+
+async function onNext(){
+  const c=cards[idx],dwell=Date.now()-cardStart,skimmed=!touched&&dwell<SKIM_MS;
+  if(adapt&&skimmed&&!retakeDone&&!c._revisit){
+    retakeDone=true;
+    $('stage').innerHTML=`<div class="loading dots">That one didn't land. Trying a plainer angle</div>`;
+    try{const r=await reframe(c,false);
+      cards[idx]={...c,idea:r.idea,body:r.body,hook:r.hook,watch:r.watch||c.watch,_retake:true};
+      renderCard();return;}catch(e){}
+  }
+  if(adapt&&!c._revisit){
+    if(touched)bump(c.topic,dwell>25000?2:1);
+    else if(skimmed)bump(c.topic,c._retake?-3:-1);
+    else bump(c.topic,1);
+  }
+  next();
+}
+function paintVerdict(v){
+  $('verdict').innerHTML=`<div class="verdict"><h4>Where you're right</h4><p>${esc(v.concede)}</p>
+    <h4>Where it still doesn't follow</h4><p>${esc(v.hold)}</p>
+    <h4>What would settle it</h4><p>${esc(v.settles_it)}</p>
+    ${v.revised_tier?`<p class="strength" style="color:${(TIERS[v.revised_tier]||TIERS.contested).c}">
+      Revised rating: ${(TIERS[v.revised_tier]||TIERS.contested).label}</p>`:''}</div>`;
+}
+function upsertThread(card,note,verdict){
+  const clean={...card};['_revisit','_threadId','_retake','_prereq'].forEach(k=>delete clean[k]);
+  let th=threads.find(x=>x.card.idea===card.idea);
+  if(!th){th={id:'t'+Date.now()+Math.random().toString(36).slice(2,6),card:clean,note:'',
+    status:'open',created:today(),touched:today()};threads.unshift(th);}
+  if(note)th.note=th.note?th.note+'\n\n'+note:note;
+  if(verdict){th.verdict=verdict;th.card.tier=verdict.revised_tier||th.card.tier;}
+  th.touched=today();
+}
+function next(){
+  idx++;
+  if(idx<cards.length){renderCard();return;}
+  gaps=gaps.filter(g=>!cards.some(c=>(c.idea||'').toLowerCase().includes((g.concept||'~~').toLowerCase())));
+  const d=today();
+  if(lastNight!==d){const y=new Date(Date.now()-864e5).toISOString().slice(0,10);
+    streak=(lastNight===y)?streak+1:1;lastNight=d;}
+  paintStreak();paintTracks();paintPool();paintGaps();persist();
+  const o=openThreads().length,rest=TRACKS.filter(resting).length;
+  $('done-sub').textContent=`${o} open thread${o===1?'':'s'} in rotation. `+
+    (gaps.length?`${gaps.length} prerequisite${gaps.length===1?'':'s'} queued. `:'')+
+    (rest?`${rest} track${rest===1?'':'s'} went quiet. `:'')+`Streak at ${streak}.`;
+  show('s-done');
+}
+$('view-saved').onclick=()=>{
+  const render=list=>list.map(th=>{const t=TIERS[th.card.tier]||TIERS.contested;
+    return `<div class="saved-item"><div class="idea">${esc(th.card.idea)}</div>
+      ${th.card.open_question?`<p class="basis" style="margin-bottom:6px">${esc(th.card.open_question)}</p>`:''}
+      ${th.note?`<p class="basis" style="margin-bottom:6px;color:#CFC8BB">You: ${esc(th.note.split('\n\n')[0])}</p>`:''}
+      <span class="tier" style="color:${t.c}">${t.label}</span><span class="eyebrow"> / ${esc(th.card.topic)}</span></div>`;}).join('');
+  const open=openThreads(),settled=threads.filter(t=>t.status==='settled');
+  const gapHtml=gaps.length?`<div class="eyebrow" style="margin:24px 0 8px">Groundwork queued</div>`+
+    gaps.map(g=>`<div class="saved-item"><div class="idea">${esc(g.concept)}</div>
+      <p class="basis">${esc(g.why)}</p></div>`).join(''):'';
+  $('saved-list').innerHTML=(threads.length||gaps.length)
+    ?render(open)+(settled.length?`<div class="eyebrow" style="margin:24px 0 8px">Settled</div>`+render(settled):'')+gapHtml
+    :`<p class="sub">Nothing here yet. Dispute a rating, flag a card, or say something's over your head.</p>`;
+  show('s-saved');
+};
+$('back').onclick=()=>show('s-done');
+if('serviceWorker' in navigator&&location.protocol==='https:')
+  navigator.serviceWorker.register('./sw.js').catch(()=>{});
+load();
+</script>
+</body>
+</html>
