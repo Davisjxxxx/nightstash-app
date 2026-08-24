@@ -1,0 +1,54 @@
+- NEURAL NETS: be concrete and correct about what actually buys efficiency. Quantization, KV cache management, sparsity and mixture of experts, distillation, low rank adaptation, speculative decoding, flash attention and memory-bandwidth limits, batching. Say which bottleneck each one attacks, memory bandwidth versus compute versus parameter count, since they are not the same problem. Do not imply a technique is free of tradeoffs.
+- LINEAR ALGEBRA: ground it in what it does inside the machine. A matmul is what a layer is, eigenvectors and singular values are what low rank methods exploit, dot products are what attention scores are.
+- Cymatics: Chladni and Faraday wave physics established; cymatic healing is folklore.
+- Toroidal geometry: tokamak confinement and magnetospheres established; confinement instability is a live frontier.
+- "Ancient technique": documented craft like Roman seawater concrete, Polynesian wayfinding, the Antikythera mechanism. Not lost-civilization claims.
+- Never present folklore as established, and never flatten something established into folklore because it sits near a popular myth.
+- No medical or psychiatric advice. Mechanism and research only.`;
+
+const WATCH=`- "watch": a YouTube SEARCH PHRASE, not a URL and not a video title you are guessing at. 4 to 8 words that would surface a good explainer, naming the channel when an obvious one exists, for example "3blue1brown singular value decomposition" or "Veritasium tokamak plasma confinement". Never invent video IDs or links.`;
+
+async function generate(topics){
+  const hot=TRACKS.filter(t=>w(t)>=HOT_AT), cold=TRACKS.filter(t=>w(t)<0&&!resting(t));
+  const bench=openThreads().slice(0,8).map(t=>`- ${t.card.idea} (${t.card.topic})`).join('\n');
+  const depth=topics.map(t=>`${t}: level ${lvl(t)}, ${LEVELS[lvl(t)]}`).join('\n');
+  const gapAsk=gaps.slice(0,2).map(g=>`- ${g.concept} (needed for: ${g.forCard})`).join('\n');
+  const sys=`You write single-idea learning cards for someone who wants to work on open problems, not read trivia. Return ONLY a JSON array of 5 objects. No markdown fences, no preamble.
+
+Each: {"topic","idea","body","tier","basis","watch","open_question","stuck_on","handles":[3 strings],"link"}
+- "topic": MUST be exactly one of the requested topic strings, copied verbatim.
+- "idea": one claim, under 15 words. "body": 40-60 words, concrete.
+- "tier": one of "established","frontier","contested","folklore".
+- "basis": under 25 words on the actual evidence, naming the measurement or method where one exists.
+${WATCH}
+- open_question / stuck_on / handles: REQUIRED for tier "frontier", omit otherwise.
+  open_question: the unresolved question, sharp enough to work on.
+  stuck_on: the specific blocker. A missing measurement, an incompatible formalism, an unreachable scale, an unfixable free parameter.
+  handles: 3 concrete angles an outsider could push on. Name what would have to be true, what needs measuring, or which assumption is load-bearing. No vague "study further".
+${linkMode&&bench?`- "link": {"to","mechanism","strength":"mechanistic"|"formal"|"analogical"|"none"} tying this card to ONE bench item below, or omit.
+  LINK HONESTY IS MANDATORY. "mechanistic" only if the same physical process drives both. "formal" only if the same equations genuinely apply, and name them. "analogical" if it is only resemblance, and say so in "mechanism". "none" if there is no real tie. Most unrelated pairs have NO link. Returning most cards with no link is correct.
+
+BENCH:
+${bench}`:'- "link": omit this field entirely.'}
+
+WRITE EACH CARD AT ITS TRACK'S DEPTH:
+${depth}
+${gapAsk?`\nGROUNDWORK. The reader flagged these as missing prerequisites. Make one of the five a card teaching one of them directly, at level 1 or 2, tier established:\n${gapAsk}`:''}
+${hot.length?`\nEngages most with: ${hot.join(', ')}. Weight toward these.`:''}
+${cold.length?`\nHas been skimming: ${cold.join(', ')}. Find a different angle, not a softer rating.`:''}
+
+${ACCURACY}`;
+  const ask=frontierOnly
+    ?`Topics: ${topics.join(', ')}. Five cards, ALL tier "frontier", each a real open problem with handles.`
+    :`Topics: ${topics.join(', ')}. Tonight's five. At least two must be tier "frontier". Vary the rest.`;
+  return parse(await callClaude(sys,ask,3000));
+}
+
+async function reframe(card,explicit){
+  const target=Math.max(1,lvl(card.topic)-(explicit?1:0));
+  const sys=`Rewrite one learning card that did not land. ${explicit?'The reader said outright it was over their head.':'The reader skimmed it, so it was too abstract or the stakes were invisible.'} Return ONLY JSON, no fences:
+{"idea","body","hook","watch","prereq":{"concept","why"}}
+- "hook": one sentence, an everyday concrete situation where this shows up.
+- "idea": the same claim restated plainly, under 15 words.
+- "body": 40-60 words at this level: ${LEVELS[target]}
+${WATCH}
