@@ -1,0 +1,93 @@
+      <span>Adapt to engagement. Off means every track stays in the deck at a fixed depth.</span></label>
+    <button class="btn" id="deal" style="margin-top:8px">Deal tonight's session</button>
+    <p class="foot" id="poolnote"></p>
+  </section>
+
+  <section class="screen" id="s-cards">
+    <div class="progress" id="pips"></div>
+    <div id="stage"></div>
+  </section>
+
+  <section class="screen" id="s-done">
+    <div class="eyebrow">Session closed</div>
+    <h2 class="done-h">Done for tonight.</h2>
+    <p class="sub" id="done-sub"></p>
+    <button class="btn ghost" id="view-saved" style="margin-bottom:8px">Open the bench</button>
+    <p class="foot">Open threads come back on rotation, oldest-touched first.</p>
+  </section>
+
+  <section class="screen" id="s-saved">
+    <div class="eyebrow">The bench</div>
+    <h2 class="done-h" style="font-size:24px;margin-bottom:18px">Open threads</h2>
+    <div class="list" id="saved-list"></div>
+    <button class="btn ghost" id="back">Back</button>
+    <div style="height:24px"></div>
+  </section>
+
+  <section class="screen" id="s-config">
+    <div class="eyebrow">Setup</div>
+    <h2 class="done-h" style="font-size:24px">Where the cards come from</h2>
+    <p class="sub">Running inside a Claude artifact, leave both blank. Running as your own app, point it at a proxy.</p>
+    <div class="field">
+      <label class="eyebrow" for="ep">Proxy URL</label>
+      <input type="text" id="ep" placeholder="https://nightstash.you.workers.dev" autocomplete="off">
+      <p class="hint">A Cloudflare Worker holding your API key. Recommended.</p>
+    </div>
+    <div class="field">
+      <label class="eyebrow" for="ak">Or an API key, direct</label>
+      <input type="password" id="ak" placeholder="sk-ant-..." autocomplete="off">
+      <p class="hint">Stored on this device only. Anyone who can open this page or read its storage can take it. Use the proxy unless you're the only one who ever touches the phone.</p>
+    </div>
+    <button class="btn" id="save-cfg">Save and go back</button>
+    <div style="height:24px"></div>
+  </section>
+</div>
+
+<script>
+const TRACKS=["Neural nets & efficiency","Linear algebra","AI training & learning theory","Robotics & control",
+"Psychiatry","Psychology","Biology & neuroscience","Quantum biology","Cymatics & acoustics","Plasma physics",
+"Biomagnetism","Toroidal fields & geometry","Space & time","Cosmology","Ancient technique & lost craft","Sleep & circadian rhythm"];
+const TIERS={established:{c:"var(--solid)",w:"100%",label:"Established"},
+ frontier:{c:"var(--frontier)",w:"66%",label:"Active frontier"},
+ contested:{c:"var(--contested)",w:"38%",label:"Contested"},
+ folklore:{c:"var(--folklore)",w:"14%",label:"Folklore / not supported"}};
+const LINKCOLOR={mechanistic:"var(--solid)",formal:"var(--frontier)",analogical:"var(--contested)",none:"var(--muted)"};
+const LEVELS={1:"plain language, everyday images, no notation",
+ 2:"one technical term per card, defined in the same breath, arithmetic only",
+ 3:"standard terminology assumed, light notation, named methods and results",
+ 4:"full technical register, equations, cite specific papers and quantities"};
+const REST_AT=-4, HOT_AT=3, SKIM_MS=9000;
+
+let picked=new Set(["Neural nets & efficiency","Linear algebra","Space & time"]);
+let frontierOnly=false, linkMode=true, adapt=true, endpoint='', apikey='';
+let cards=[], idx=0, threads=[], weights={}, levels={}, gaps=[], streak=0, lastNight=null;
+let cardStart=0, touched=false, retakeDone=false;
+
+const $=id=>document.getElementById(id);
+const show=id=>document.querySelectorAll('.screen').forEach(s=>s.classList.toggle('on',s.id===id));
+const esc=s=>String(s==null?'':s).replace(/[&<>"]/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+const today=()=>new Date().toISOString().slice(0,10);
+const openThreads=()=>threads.filter(t=>t.status==='open');
+const w=t=>weights[t]||0;
+const lvl=t=>levels[t]||2;
+const resting=t=>adapt&&w(t)<=REST_AT;
+
+const store={
+  async get(k){ if(window.storage) return JSON.parse((await window.storage.get(k)).value);
+                const v=localStorage.getItem(k); if(v==null) throw new Error('miss'); return JSON.parse(v); },
+  async set(k,v){ if(window.storage) return window.storage.set(k,JSON.stringify(v));
+                  localStorage.setItem(k,JSON.stringify(v)); }
+};
+
+async function load(){
+  try{const s=await store.get('nightstash:v4');
+    threads=s.threads||[];weights=s.weights||{};levels=s.levels||{};gaps=s.gaps||[];
+    streak=s.streak||0;lastNight=s.lastNight||null;
+    frontierOnly=!!s.frontierOnly;linkMode=s.linkMode!==false;adapt=s.adapt!==false;
+    endpoint=s.endpoint||'';apikey=s.apikey||'';
+    if(s.picked?.length)picked=new Set(s.picked);}catch(e){}
+  $('fronly').checked=frontierOnly;$('linkon').checked=linkMode;$('adapton').checked=adapt;
+  $('ep').value=endpoint;$('ak').value=apikey;
+  paintStreak();paintTracks();paintPool();paintGaps();
+}
+async function persist(){
