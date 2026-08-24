@@ -1,0 +1,53 @@
+name: Assemble Nightstash
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - '.assemble/**'
+      - '.github/workflows/assemble.yml'
+
+permissions:
+  contents: write
+
+jobs:
+  assemble:
+    if: github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Assemble source files
+        shell: bash
+        run: |
+          set -euo pipefail
+          cat .assemble/index.part.* > index.html
+          cat .assemble/manifest.part.* > manifest.webmanifest
+
+      - name: Verify exact archive hashes
+        shell: bash
+        run: |
+          set -euo pipefail
+          echo '2ec0109b4b3f67a10c26b5860f5c8008d94af62f7a39bc119ba444cd11d368c8  index.html' | sha256sum -c -
+          echo '018fd28a1def8c4c5aabb6cfd8513fcf7019d6383598484844283c924c29b87d  manifest.webmanifest' | sha256sum -c -
+          echo 'eb8d430ac86a2577a0b75b0a94075edd6b9efd7e4f499a49e097ac99fcd7f189  README.md' | sha256sum -c -
+          echo 'b9d382e20d9b20a034a71ff7ee4a903e79a784bacf988bc0cfd1c2f2f98733cc  sw.js' | sha256sum -c -
+          echo '39ab8c141485616bad872e0b29f4fbb21ea8b061dd2364899f63dbd9c02a08b3  worker.js' | sha256sum -c -
+
+      - name: Clean staging files
+        shell: bash
+        run: |
+          rm -rf .assemble
+          rm -f .github/workflows/assemble.yml
+          rmdir .github/workflows 2>/dev/null || true
+          rmdir .github 2>/dev/null || true
+
+      - name: Commit assembled app
+        shell: bash
+        run: |
+          set -euo pipefail
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -A
+          git commit -m 'Add Nightstash app from text-only archive'
+          git push
