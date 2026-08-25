@@ -1,4 +1,4 @@
-const CACHE = 'nightstash-v2';
+const CACHE = 'nightstash-v3';
 const SHELL = ['./index.html','./manifest.webmanifest'];
 
 self.addEventListener('install', e => {
